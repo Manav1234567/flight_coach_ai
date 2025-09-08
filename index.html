@@ -55,6 +55,32 @@
             outline: none;
         }
 
+        #jump-prompt {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 18px;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            border: 3px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            display: none;
+        }
+
+        #jump-prompt:hover {
+            transform: translateX(-50%) scale(1.1);
+            background: linear-gradient(45deg, #8bc34a, #4caf50);
+        }
+
+        #jump-prompt:focus {
+            outline: none;
+        }
+
         #score {
             position: absolute;
             top: 20px;
@@ -82,6 +108,7 @@
         <div id="score">Score: 0</div>
         <div id="game-over">Game Over</div>
         <button id="play-button">Play</button>
+        <button id="jump-prompt">Hold Space to Ascend</button>
     </div>
     <script>
         class Bird {
@@ -100,7 +127,7 @@
         class Pipe {
             constructor(canvasHeight, x) {
                 this.x = x;
-                this.width = 40;
+                this.width = 20;
                 this.gapSize = 200;
                 this.gapCenter = Math.random() * (canvasHeight - 300) + 150;
                 this.color = '#228b22';
@@ -122,37 +149,44 @@
                 this.score = 0;
                 this.state = 'menu';
                 this.keys = {};
-                this.gravity = 0.1;
-                this.ascendSpeed = -1.5;
+                this.gravity = 0.05;
+                this.ascendSpeed = -1.8;
                 this.pipeSpeed = 2;
                 this.pipeInterval = 250;
                 this.nextPipeDist = 0;
+                this.canStartHold = true;
+                this.holding = false;
                 this.scoreEl = document.getElementById('score');
                 this.gameOverEl = document.getElementById('game-over');
                 this.playButton = document.getElementById('play-button');
+                this.jumpPrompt = document.getElementById('jump-prompt');
 
                 this.canvas.tabIndex = 0;
                 document.addEventListener('keydown', (e) => {
                     this.keys[e.key] = true;
-                    if (e.key === ' ' && this.state === 'menu') this.startGame();
+                    if (e.key === ' ' && (this.state === 'menu' || this.state === 'dead')) this.startGame();
                 });
                 document.addEventListener('keyup', (e) => this.keys[e.key] = false);
                 this.playButton.onclick = () => this.startGame();
                 this.playButton.addEventListener('keydown', (e) => {
                     if (e.key === ' ') this.startGame();
                 });
+                this.jumpPrompt.onclick = () => {}; // Placeholder, accessibility handled by keyboard events
 
                 this.loop();
             }
 
             startGame() {
                 this.bird.reset();
-                this.pipes = [new Pipe(this.canvas.height, this.canvas.width + 100)];
+                this.pipes = [new Pipe(this.canvas.height, this.canvas.width)];
                 this.nextPipeDist = this.pipeInterval;
                 this.score = 0;
                 this.state = 'playing';
+                this.canStartHold = true;
+                this.holding = false;
                 this.gameOverEl.style.display = 'none';
                 this.playButton.style.display = 'none';
+                this.jumpPrompt.style.display = 'block';
                 this.canvas.focus();
                 this.updateScore();
             }
@@ -164,7 +198,24 @@
             update() {
                 if (this.state !== 'playing') return;
 
+                let ascend = false;
+
                 if (this.keys[' ']) {
+                    if (!this.holding && this.canStartHold) {
+                        this.holding = true;
+                        this.canStartHold = false;
+                    }
+                    if (this.holding) {
+                        ascend = true;
+                    }
+                } else {
+                    if (this.holding) {
+                        this.holding = false;
+                        this.jumpPrompt.style.display = 'none';
+                    }
+                }
+
+                if (ascend) {
                     this.bird.vel.y = this.ascendSpeed;
                 } else {
                     this.bird.vel.y += this.gravity;
@@ -175,6 +226,7 @@
                     this.state = 'dead';
                     this.gameOverEl.style.display = 'block';
                     this.playButton.style.display = 'block';
+                    this.jumpPrompt.style.display = 'none';
                     return;
                 }
 
@@ -195,12 +247,307 @@
                         this.state = 'dead';
                         this.gameOverEl.style.display = 'block';
                         this.playButton.style.display = 'block';
+                        this.jumpPrompt.style.display = 'none';
                         return;
                     }
                     if (pipe.x + pipe.width < this.bird.pos.x && !pipe.passed) {
                         pipe.passed = true;
                         this.score++;
                         this.updateScore();
+                        this.canStartHold = true;
+                        this.jumpPrompt.style.display = 'block';
+                    }
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.beginPath();
+                this.ctx.arc(this.bird.pos.x, this.bird.pos.y, this.bird.radius, 0, Math.PI * 2);
+                this.ctx.fillStyle = this.bird.color;
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#333';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                for (const pipe of this.pipes) {
+                    this.ctx.fillStyle = pipe.color;
+                    this.ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                    this.ctx.fillRect(pipe.x, pipe.bottom, pipe.width, this.canvas.height - pipe.bottom);
+                    this.ctx.strokeStyle = '#333';
+                    this.ctx.strokeRect(pipe.x, 0, pipe.width, pipe.top);
+                    this.ctx.strokeRect(pipe.x, pipe.bottom, pipe.width, this.canvas.height - pipe.bottom);
+                }
+            }
+
+            loop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        new Game();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(180deg, #87ceeb, #e0f6ff);
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            text-align: center;
+        }
+
+        #game {
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><rect width="400" height="600" fill="%2387ceeb"/><g transform="translate(0,500)"><rect width="400" height="100" fill="%2394d82d"/></g></svg>');
+        }
+
+        #play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            font-size: 24px;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: 3px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        #play-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            background: linear-gradient(45deg, #ff8e53, #ff6b6b);
+        }
+
+        #play-button:focus {
+            outline: none;
+        }
+
+        #jump-prompt {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 18px;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            border: 3px solid #333;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            display: none;
+        }
+
+        #jump-prompt:hover {
+            transform: translateX(-50%) scale(1.1);
+            background: linear-gradient(45deg, #8bc34a, #4caf50);
+        }
+
+        #jump-prompt:focus {
+            outline: none;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game" width="400" height="600"></canvas>
+        <div id="score">Score: 0</div>
+        <div id="game-over">Game Over</div>
+        <button id="play-button">Play</button>
+        <button id="jump-prompt">Hold Space to Ascend</button>
+    </div>
+    <script>
+        class Bird {
+            constructor() {
+                this.pos = { x: 50, y: 300 };
+                this.vel = { y: 0 };
+                this.radius = 20;
+                this.color = '#ffd700';
+            }
+            reset() {
+                this.pos = { x: 50, y: 300 };
+                this.vel = { y: 0 };
+            }
+        }
+
+        class Pipe {
+            constructor(canvasHeight, x) {
+                this.x = x;
+                this.width = 20;
+                this.gapSize = 200;
+                this.gapCenter = Math.random() * (canvasHeight - 300) + 150;
+                this.color = '#228b22';
+            }
+            get top() {
+                return this.gapCenter - this.gapSize / 2;
+            }
+            get bottom() {
+                return this.gapCenter + this.gapSize / 2;
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('game');
+                this.ctx = this.canvas.getContext('2d');
+                this.bird = new Bird();
+                this.pipes = [];
+                this.score = 0;
+                this.state = 'menu';
+                this.keys = {};
+                this.gravity = 0.05;
+                this.ascendSpeed = -1.8;
+                this.pipeSpeed = 2;
+                this.pipeInterval = 250;
+                this.nextPipeDist = 0;
+                this.canStartHold = true;
+                this.holding = false;
+                this.scoreEl = document.getElementById('score');
+                this.gameOverEl = document.getElementById('game-over');
+                this.playButton = document.getElementById('play-button');
+                this.jumpPrompt = document.getElementById('jump-prompt');
+
+                this.canvas.tabIndex = 0;
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key] = true;
+                    if (e.key === ' ' && (this.state === 'menu' || this.state === 'dead')) this.startGame();
+                });
+                document.addEventListener('keyup', (e) => this.keys[e.key] = false);
+                this.playButton.onclick = () => this.startGame();
+                this.playButton.addEventListener('keydown', (e) => {
+                    if (e.key === ' ') this.startGame();
+                });
+                this.jumpPrompt.onclick = () => {}; // Placeholder, accessibility handled by keyboard events
+
+                this.loop();
+            }
+
+            startGame() {
+                this.bird.reset();
+                this.pipes = [new Pipe(this.canvas.height, this.canvas.width)];
+                this.nextPipeDist = this.pipeInterval;
+                this.score = 0;
+                this.state = 'playing';
+                this.canStartHold = true;
+                this.holding = false;
+                this.gameOverEl.style.display = 'none';
+                this.playButton.style.display = 'none';
+                this.jumpPrompt.style.display = 'block';
+                this.canvas.focus();
+                this.updateScore();
+            }
+
+            updateScore() {
+                this.scoreEl.textContent = `Score: ${this.score}`;
+            }
+
+            update() {
+                if (this.state !== 'playing') return;
+
+                let ascend = false;
+
+                if (this.keys[' ']) {
+                    if (!this.holding && this.canStartHold) {
+                        this.holding = true;
+                        this.canStartHold = false;
+                    }
+                    if (this.holding) {
+                        ascend = true;
+                    }
+                } else {
+                    if (this.holding) {
+                        this.holding = false;
+                        this.jumpPrompt.style.display = 'none';
+                    }
+                }
+
+                if (ascend) {
+                    this.bird.vel.y = this.ascendSpeed;
+                } else {
+                    this.bird.vel.y += this.gravity;
+                }
+                this.bird.pos.y += this.bird.vel.y;
+
+                if (this.bird.pos.y + this.bird.radius > this.canvas.height || this.bird.pos.y - this.bird.radius < 0) {
+                    this.state = 'dead';
+                    this.gameOverEl.style.display = 'block';
+                    this.playButton.style.display = 'block';
+                    this.jumpPrompt.style.display = 'none';
+                    return;
+                }
+
+                this.nextPipeDist -= this.pipeSpeed;
+                if (this.nextPipeDist <= 0) {
+                    this.pipes.push(new Pipe(this.canvas.height, this.canvas.width + this.pipeInterval));
+                    this.nextPipeDist = this.pipeInterval;
+                }
+
+                this.pipes = this.pipes.filter(pipe => pipe.x + pipe.width > 0);
+                for (const pipe of this.pipes) {
+                    pipe.x -= this.pipeSpeed;
+                    if (
+                        this.bird.pos.x + this.bird.radius > pipe.x &&
+                        this.bird.pos.x - this.bird.radius < pipe.x + pipe.width &&
+                        (this.bird.pos.y - this.bird.radius < pipe.top || this.bird.pos.y + this.bird.radius > pipe.bottom)
+                    ) {
+                        this.state = 'dead';
+                        this.gameOverEl.style.display = 'block';
+                        this.playButton.style.display = 'block';
+                        this.jumpPrompt.style.display = 'none';
+                        return;
+                    }
+                    if (pipe.x + pipe.width < this.bird.pos.x && !pipe.passed) {
+                        pipe.passed = true;
+                        this.score++;
+                        this.updateScore();
+                        this.canStartHold = true;
+                        this.jumpPrompt.style.display = 'block';
                     }
                 }
             }
