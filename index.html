@@ -165,6 +165,14 @@
             background: linear-gradient(45deg, #ef9a9a, #e53935);
         }
 
+        #upload-dataset {
+            background: linear-gradient(45deg, #9c27b0, #ce93d8);
+        }
+
+        #upload-dataset:hover {
+            background: linear-gradient(45deg, #ce93d8, #9c27b0);
+        }
+
         #training-status {
             font-size: 12px;
             color: #fff;
@@ -179,6 +187,8 @@
         <button id="pause-record">Pause Recording</button>
         <button id="clear-dataset">Clear Dataset</button>
         <button id="download-dataset">Download CSV</button>
+        <input type="file" id="upload-dataset" accept=".csv" style="display: none;">
+        <button id="upload-button">Upload CSV</button>
         <button id="train-model">Train Model</button>
         <button id="start-ai">Start AI Play</button>
         <button id="stop-ai">Stop AI Play</button>
@@ -247,12 +257,14 @@
                 this.pressedThisInterval = false;
                 this.model = null;
                 this.featureStats = null;
-                this.aiPredictionCount = 0; // Track number of AI predictions per game
+                this.aiPredictionCount = 0;
 
                 this.startRecordBtn = document.getElementById('start-record');
                 this.pauseRecordBtn = document.getElementById('pause-record');
                 this.clearDatasetBtn = document.getElementById('clear-dataset');
                 this.downloadDatasetBtn = document.getElementById('download-dataset');
+                this.uploadDatasetInput = document.getElementById('upload-dataset');
+                this.uploadButton = document.getElementById('upload-button');
                 this.trainModelBtn = document.getElementById('train-model');
                 this.startAIBtn = document.getElementById('start-ai');
                 this.stopAIBtn = document.getElementById('stop-ai');
@@ -268,6 +280,8 @@
                     this.updateDataCount();
                 };
                 this.downloadDatasetBtn.onclick = () => this.downloadCSV();
+                this.uploadButton.onclick = () => this.uploadDatasetInput.click();
+                this.uploadDatasetInput.onchange = (e) => this.uploadCSV(e);
                 this.trainModelBtn.onclick = () => this.trainModel();
                 this.startAIBtn.onclick = () => {
                     if (!this.model) {
@@ -301,7 +315,6 @@
                     if (e.key === ' ' && !this.isAI) this.startGame();
                 });
 
-                // AI prediction interval
                 setInterval(() => {
                     if (this.state === 'playing' && this.isRecording) {
                         const row = this.getCurrentData();
@@ -313,14 +326,14 @@
                         this.aiPredictionCount++;
                         let pred, shouldJump;
                         if (this.aiPredictionCount <= 1) {
-                            pred = 1; // Force jump for first 3 predictions
+                            pred = 1;
                             shouldJump = true;
                             console.log(`AI Prediction ${this.aiPredictionCount}: Forced Jump (pred=1)`);
                         } else {
                             const features = this.getFeatures();
                             const xs = tf.tensor2d([features]);
                             pred = this.model.predict(xs).dataSync()[0];
-                            shouldJump = pred > 0.5;
+                            shouldJump = pred > 0.3; // Lowered threshold to reduce FN
                             console.log(`AI Prediction ${this.aiPredictionCount}:`, pred, 'Features:', features, 'Jump:', shouldJump);
                         }
                         if (shouldJump) {
@@ -348,7 +361,7 @@
                         stds[j] += Math.pow(features[i][j] - means[j], 2) / (n - 1);
                     }
                 }
-                return { means, stds: stds.map(s => Math.sqrt(s) || 1) }; // Prevent zero std
+                return { means, stds: stds.map(s => Math.sqrt(s) || 1) };
             }
 
             async trainModel() {
@@ -358,7 +371,6 @@
                 }
                 this.trainingStatusEl.textContent = 'Training in progress...';
 
-                // Prepare features and labels
                 const features = this.dataset.map(d => [
                     d.y / this.canvas.height,
                     d.vel / 10,
@@ -368,18 +380,15 @@
                 ]);
                 const labels = this.dataset.map(d => [d.pressed]);
 
-                // Standardize features
                 this.featureStats = this.computeStats(features);
                 const normalizedFeatures = features.map(row =>
                     row.map((val, i) => (val - this.featureStats.means[i]) / this.featureStats.stds[i])
                 );
 
-                // Class weighting (mimicking Python's ~3:1 ratio)
                 const num1 = labels.filter(l => l[0] === 1).length;
                 const num0 = labels.length - num1;
-                const classWeight = { 0: 1, 1: num0 / (num1 || 1) };
+                const classWeight = { 0: 1, 1: 1 }; // Higher weight for positive class to reduce FN
 
-                // Train-test split (80/20)
                 const indices = Array.from({ length: labels.length }, (_, i) => i);
                 indices.sort(() => Math.random() - 0.5);
                 const trainSize = Math.floor(0.8 * indices.length);
@@ -395,7 +404,6 @@
                 const xsTest = tf.tensor2d(testFeatures);
                 const ysTest = tf.tensor2d(testLabels);
 
-                // Train model
                 this.model = tf.sequential();
                 this.model.add(tf.layers.dense({ inputShape: [5], units: 1, activation: 'sigmoid' }));
                 this.model.compile({
@@ -405,14 +413,13 @@
                 });
 
                 await this.model.fit(xsTrain, ysTrain, {
-                    epochs: 200,
+                    epochs: 100,
                     batchSize: 32,
                     classWeight,
                     validationData: [xsTest, ysTest],
                     verbose: 0
                 });
 
-                // Compute metrics
                 const weights = this.model.getWeights()[0].dataSync();
                 const bias = this.model.getWeights()[1].dataSync()[0];
                 const predsTrain = this.model.predict(xsTrain).dataSync();
@@ -424,7 +431,7 @@
                 const meanYTest = truesTest.reduce((sum, y) => sum + y, 0) / truesTest.length;
 
                 for (let i = 0; i < predsTest.length; i++) {
-                    const pred = predsTest[i] > 0.5 ? 1 : 0;
+                    const pred = predsTest[i] > 0.3 ? 1 : 0; // Lowered threshold for metrics
                     if (pred === 1 && truesTest[i] === 1) tpTest++;
                     if (pred === 1 && truesTest[i] === 0) fpTest++;
                     if (pred === 0 && truesTest[i] === 1) fnTest++;
@@ -438,7 +445,6 @@
                 const r2Test = ssTotTest ? 1 - ssResTest / ssTotTest : 0;
                 const adjustedR2Test = 1 - (1 - r2Test) * (testFeatures.length - 1) / (testFeatures.length - 5 - 1);
 
-                // Approximate p-values
                 const n = features.length;
                 const se = normalizedFeatures.map(row => row.reduce((sum, x, i) => sum + x * weights[i], bias));
                 const seMean = Math.sqrt(se.reduce((sum, x) => sum + x * x, 0) / n);
@@ -447,7 +453,6 @@
                     return 2 * (1 - this.normalCDF(Math.abs(z)));
                 });
 
-                // Console log regression report
                 console.log('=== Logistic Regression Report ===');
                 console.table({
                     'Feature': ['y (norm)', 'vel (norm)', 'dist (norm)', 'mid1 (norm)', 'mid2 (norm)', 'Intercept'],
@@ -455,8 +460,8 @@
                     'P-Value': [...pValues, '-']
                 });
                 console.table({
-                    'Metric': ['Test R²', 'Test Adjusted R²', 'Test F1 Score'],
-                    'Value': [r2Test, adjustedR2Test, f1Test]
+                    'Metric': ['Test R²', 'Test Adjusted R²', 'Test F1 Score', 'Test Recall', 'Test Precision', 'False Negatives'],
+                    'Value': [r2Test, adjustedR2Test, f1Test, recallTest, precisionTest, fnTest]
                 });
                 console.log('Confusion Matrix (Test Set):');
                 console.table({
@@ -465,7 +470,7 @@
                     'Actual 1': [fnTest, tpTest]
                 });
 
-                this.trainingStatusEl.textContent = `Training done! Test F1: ${f1Test.toFixed(3)}`;
+                this.trainingStatusEl.textContent = `Training done! Test F1: ${f1Test.toFixed(3)}, FN: ${fnTest}`;
             }
 
             normalCDF(z) {
@@ -482,12 +487,10 @@
                     next ? next.gapCenter / this.canvas.height : this.bird.pos.y / this.canvas.height,
                     nextNext ? nextNext.gapCenter / this.canvas.height : this.bird.pos.y / this.canvas.height
                 ];
-                // console.log('Raw Features:', raw);
                 const normalized = this.featureStats ? raw.map((val, i) => {
                     const std = this.featureStats.stds[i];
                     const mean = this.featureStats.means[i];
                     const result = (val - mean) / std;
-                    // console.log(`Feature ${i}: raw=${val}, mean=${mean}, std=${std}, normalized=${result}`);
                     return result;
                 }) : raw;
                 return normalized;
@@ -528,6 +531,35 @@
                 URL.revokeObjectURL(url);
             }
 
+            uploadCSV(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const text = e.target.result;
+                    const lines = text.split('\n').slice(1); // Skip header
+                    let validRows = 0;
+                    lines.forEach((line, index) => {
+                        const [pressed, y, vel, dist, mid1, mid2] = line.split(',').map(val => parseFloat(val));
+                        if (
+                            line.trim() &&
+                            !isNaN(pressed) && (pressed === 0 || pressed === 1) &&
+                            !isNaN(y) && !isNaN(vel) && !isNaN(dist) &&
+                            !isNaN(mid1) && !isNaN(mid2)
+                        ) {
+                            this.dataset.push({ pressed, y, vel, dist, mid1, mid2 });
+                            validRows++;
+                        } else {
+                            console.warn(`Invalid CSV row at line ${index + 2}: ${line}`);
+                        }
+                    });
+                    this.updateDataCount();
+                    this.trainingStatusEl.textContent = `Uploaded ${validRows} valid data points`;
+                    this.uploadDatasetInput.value = ''; // Reset input
+                };
+                reader.readAsText(file);
+            }
+
             startGame() {
                 this.bird.reset();
                 this.pipes = [new Pipe(this.canvas.height, this.canvas.width)];
@@ -539,7 +571,7 @@
                 this.canvas.focus();
                 this.prevSpace = false;
                 this.keys[' '] = false;
-                this.aiPredictionCount = 0; // Reset prediction count
+                this.aiPredictionCount = 0;
                 this.updateScore();
             }
 
