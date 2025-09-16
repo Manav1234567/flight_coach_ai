@@ -1,0 +1,297 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated design tokens to match the modern UI design brief */
+  --background: #ffffff;
+  --foreground: #164e63;
+  --card: #ecfeff;
+  --card-foreground: #475569;
+  --popover: #ffffff;
+  --popover-foreground: #164e63;
+  --primary: #164e63;
+  --primary-foreground: #ffffff;
+  --secondary: #f59e0b;
+  --secondary-foreground: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #6b7280;
+  --accent: #f59e0b;
+  --accent-foreground: #164e63;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #475569;
+  --input: #ecfeff;
+  --ring: rgba(22, 78, 99, 0.5);
+  --chart-1: #1f2937;
+  --chart-2: #dc2626;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #164e63;
+  --radius: 0.5rem;
+  --sidebar: #ecfeff;
+  --sidebar-foreground: #164e63;
+  --sidebar-primary: #475569;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f59e0b;
+  --sidebar-accent-foreground: #164e63;
+  --sidebar-border: #475569;
+  --sidebar-ring: rgba(22, 78, 99, 0.5);
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #ecfeff;
+  --card: #1e293b;
+  --card-foreground: #ecfeff;
+  --popover: #1e293b;
+  --popover-foreground: #ecfeff;
+  --primary: #ecfeff;
+  --primary-foreground: #164e63;
+  --secondary: #f59e0b;
+  --secondary-foreground: #0f172a;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #f59e0b;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #475569;
+  --input: #334155;
+  --ring: rgba(236, 254, 255, 0.5);
+  --chart-1: #1f2937;
+  --chart-2: #dc2626;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #164e63;
+  --sidebar: #1e293b;
+  --sidebar-foreground: #ecfeff;
+  --sidebar-primary: #475569;
+  --sidebar-primary-foreground: #ecfeff;
+  --sidebar-accent: #f59e0b;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #475569;
+  --sidebar-ring: rgba(236, 254, 255, 0.5);
+}
+
+/* Updated font configuration for Tailwind CSS v4 */
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Enhanced button styling with !important to override any conflicting styles */
+@layer components {
+  .btn-primary {
+    background-color: #164e63 !important;
+    color: #ffffff !important;
+    border-color: #164e63 !important;
+  }
+
+  .btn-primary span {
+    color: #ffffff !important;
+  }
+
+  .btn-secondary {
+    background-color: #f59e0b !important;
+    color: #ffffff !important;
+    border-color: #f59e0b !important;
+  }
+
+  .btn-secondary span {
+    color: #ffffff !important;
+  }
+
+  .btn-destructive {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+  }
+
+  .btn-destructive span {
+    color: #ffffff !important;
+  }
+
+  .btn-outline {
+    background-color: #ffffff !important;
+    color: #164e63 !important;
+    border: 1px solid #475569 !important;
+  }
+
+  .btn-outline span {
+    color: #164e63 !important;
+  }
+
+  .badge-default {
+    background-color: #164e63 !important;
+    color: #ffffff !important;
+  }
+
+  .badge-default span {
+    color: #ffffff !important;
+  }
+
+  .badge-destructive {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+  }
+
+  .badge-destructive span {
+    color: #ffffff !important;
+  }
+
+  .badge-green {
+    background-color: #16a34a !important;
+    color: #ffffff !important;
+  }
+
+  .badge-green span {
+    color: #ffffff !important;
+  }
+}
+
+/* Added custom game-specific styles and animations */
+.game-gradient {
+  background: linear-gradient(180deg, #87ceeb, #e0f6ff);
+}
+
+.pixel-font {
+  font-family: "Press Start 2P", "Courier New", monospace;
+}
+
+/* Game canvas animations */
+@keyframes bird-flap {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.bird-animation {
+  animation: bird-flap 0.3s ease-in-out infinite;
+}
+
+/* Pulse animation for recording indicator */
+@keyframes pulse-recording {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.recording-pulse {
+  animation: pulse-recording 1s ease-in-out infinite;
+}
+
+/* Smooth transitions for game state changes */
+.game-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced focus styles for accessibility */
+.focus-enhanced:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom scrollbar for better aesthetics */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+}
+
+/* Responsive text scaling */
+@media (max-width: 640px) {
+  .responsive-text {
+    font-size: 0.875rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #000000;
+    --ring: #000000;
+  }
+
+  .dark {
+    --border: #ffffff;
+    --ring: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .bird-animation,
+  .recording-pulse,
+  .game-transition {
+    animation: none;
+    transition: none;
+  }
+}
