@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { Play, Pause, Trash2, Download, Upload, Brain, Bot, X } from "lucide-react"
 import type { GameEngine } from "@/lib/game-engine"
 import type { Level } from "@/app/page"
+import { CoinIcon } from "@/components/ui/coin-icon"
 
 interface ControlPanelProps {
   gameEngine: GameEngine | null
@@ -226,7 +227,7 @@ export function ControlPanel({
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-gradient-x"></div>
 
               {/* Content */}
-              <div className="relative flex items-center justify-between gap-2">
+              <div className="relative flex items-center gap-2">
                 <div className="flex items-center gap-2 flex-1">
                   <div className="flex-shrink-0">
                     <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white text-blue-600 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold shadow-sm animate-bounce-subtle">
@@ -237,16 +238,6 @@ export function ControlPanel({
                     {guidanceText}
                   </div>
                 </div>
-                {onDismissGuidance && (
-                  <Button
-                    onClick={onDismissGuidance}
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-blue-500 h-4 w-4 sm:h-5 sm:w-5 p-0 flex-shrink-0 transition-all duration-200 hover:scale-110"
-                  >
-                    <X className="h-2 w-2 sm:h-3 sm:w-3" />
-                  </Button>
-                )}
               </div>
             </div>
           ) : (
@@ -258,7 +249,7 @@ export function ControlPanel({
         <CardContent className="space-y-1 sm:space-y-2 lg:space-y-3 flex-1 text-[8px] sm:text-[10px] md:text-xs lg:text-sm overflow-y-auto">
           <div className="space-y-1 sm:space-y-2 p-1 sm:p-2 lg:p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
             <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2 lg:mb-3">
-              <span className="text-amber-500">🪙</span>
+              <CoinIcon size={16} className="sm:w-5 sm:h-5" />
               <span className="text-[9px] sm:text-[11px] md:text-xs font-semibold text-foreground">
                 {currentLevel === "finetuning" ? "Level 1" : currentLevel === "underfitting" ? "Level 2" : "Level 3"}{" "}
                 Coin Progress

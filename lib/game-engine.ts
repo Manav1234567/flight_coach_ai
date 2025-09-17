@@ -101,6 +101,12 @@ export class GameEngine {
   hoverOffset: number // Added for bird vibration effect
   currentLevel: Level
   fixedGapCenter: number
+  isPaused: boolean
+  pausedState: {
+    gameState: GameState
+    gameStarted: boolean
+    hoverOffset: number
+  } | null
 
   // Callbacks for UI updates
   onScoreUpdate?: (score: number) => void
@@ -143,6 +149,8 @@ export class GameEngine {
     this.hoverOffset = 0
     this.currentLevel = "finetuning"
     this.fixedGapCenter = this.canvas.height / 2
+    this.isPaused = false
+    this.pausedState = null
 
     this.setupEventListeners()
     this.setupDataCollection()
@@ -161,6 +169,9 @@ export class GameEngine {
     this.canvas.tabIndex = 0
 
     document.addEventListener("keydown", (e) => {
+      // Ignore all input when paused
+      if (this.isPaused) return
+
       this.keys[e.key] = true
       if (e.key === " ") {
         e.preventDefault()
@@ -174,6 +185,9 @@ export class GameEngine {
     })
 
     document.addEventListener("keyup", (e) => {
+      // Ignore all input when paused
+      if (this.isPaused) return
+
       this.keys[e.key] = false
       if (e.key === " ") {
         e.preventDefault()
@@ -183,6 +197,9 @@ export class GameEngine {
 
     this.canvas.addEventListener("click", (e) => {
       e.preventDefault()
+      // Ignore all input when paused
+      if (this.isPaused) return
+
       if (this.state === "playing" && !this.isAI) {
         this.bird.vel.y = this.jumpStrength
         this.jumpScheduled = true
@@ -198,6 +215,9 @@ export class GameEngine {
 
   private setupDataCollection() {
     setInterval(() => {
+      // Don't collect data when paused
+      if (this.isPaused || this.state !== "playing") return
+
       if (this.state === "playing") {
         if (this.isRecording && this.gameStarted) {
           const maxDataPoints = this.currentLevel === "underfitting" ? 50 : null
@@ -342,7 +362,8 @@ export class GameEngine {
   }
 
   update() {
-    if (this.state !== "playing") return
+    // Don't update game state when paused
+    if (this.isPaused || this.state !== "playing") return
 
     if (this.gameStarted || this.isAI) {
       // Apply gravity and move bird
@@ -653,5 +674,37 @@ export class GameEngine {
     this.onTrainingStatusUpdate?.(`No Model (${this.currentLevel})`)
 
     console.log(`Game completely restarted for ${this.currentLevel} level`)
+  }
+
+  pause() {
+    if (this.isPaused) return // Already paused
+
+    console.log("[GameEngine] Pausing game")
+    this.isPaused = true
+
+    // Save current state
+    this.pausedState = {
+      gameState: this.state,
+      gameStarted: this.gameStarted,
+      hoverOffset: this.hoverOffset
+    }
+  }
+
+  resume() {
+    if (!this.isPaused) return // Not paused
+
+    console.log("[GameEngine] Resuming game")
+    this.isPaused = false
+
+    // Restore state if it was saved
+    if (this.pausedState) {
+      // Note: We don't restore gameState here as it might have changed
+      // We mainly preserve gameStarted and hoverOffset for smooth continuation
+      this.pausedState = null
+    }
+  }
+
+  get paused() {
+    return this.isPaused
   }
 }

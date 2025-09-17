@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { GameEngine, type GameState } from "@/lib/game-engine"
-import { Play } from "lucide-react"
+import { Play, Pause } from "lucide-react"
 import type { Level } from "@/app/page"
 
 interface GameCanvasProps {
@@ -15,6 +15,7 @@ interface GameCanvasProps {
   onHighScoreUpdate: (highScore: number) => void
   currentScore: number
   currentLevel: Level
+  isPaused?: boolean
 }
 
 export function GameCanvas({
@@ -26,6 +27,7 @@ export function GameCanvas({
   onHighScoreUpdate,
   currentScore,
   currentLevel,
+  isPaused = false,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const gameEngineRef = useRef<GameEngine | null>(null)
@@ -91,16 +93,29 @@ export function GameCanvas({
     <div className="h-[400px] sm:h-[450px] md:h-[500px] lg:h-[550px] xl:h-[600px] w-full relative flex items-center justify-center">
       <canvas
         ref={canvasRef}
-        width={400}
+        width={500}
         height={600}
         className="block bg-gradient-to-b from-cyan-200 to-cyan-100 focus:outline-none rounded-lg border border-border shadow-sm max-w-full max-h-full"
-        style={{ aspectRatio: "400/600", width: "auto", height: "100%" }}
+        style={{ aspectRatio: "500/600", width: "auto", height: "100%" }}
         tabIndex={0}
       />
 
       {gameState === "playing" && (
         <div className="absolute top-2 lg:top-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-lg px-2 lg:px-3 py-1 lg:py-2">
           <div className="text-white font-mono text-lg lg:text-xl font-bold">{currentScore}</div>
+        </div>
+      )}
+
+      {/* Pause Overlay */}
+      {isPaused && gameState === "playing" && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-lg">
+          <div className="bg-card/95 backdrop-blur-sm shadow-xl rounded-lg border border-border p-6 text-center">
+            <Pause className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+            <h3 className="text-lg font-bold text-card-foreground mb-2">Game Paused</h3>
+            <p className="text-sm text-muted-foreground">
+              Close the chat to resume playing
+            </p>
+          </div>
         </div>
       )}
 
