@@ -252,7 +252,7 @@ export function ControlPanel({
               <CoinIcon size={16} className="sm:w-5 sm:h-5" />
               <span className="text-[9px] sm:text-[11px] md:text-xs font-semibold text-foreground">
                 {currentLevel === "finetuning" ? "Level 1" : currentLevel === "underfitting" ? "Level 2" : "Level 3"}{" "}
-                Coin Progress
+                Progress
               </span>
             </div>
             <div className="space-y-1 text-[8px] sm:text-[10px] md:text-xs">

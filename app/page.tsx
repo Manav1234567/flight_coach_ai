@@ -17,7 +17,7 @@ export type Level = "finetuning" | "underfitting" | "overfitting"
 const levelData = {
   finetuning: {
     title: "Level 1: Fine-tuning",
-    description: "Optimal training with sufficient data",
+    description: "Give AI plenty of examples to learn well",
     icon: Trophy,
     color: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-950/20",
@@ -26,14 +26,14 @@ const levelData = {
     maxDataPoints: null,
     samePipeLength: false,
     instructions: [
-      "Record 45 seconds of gameplay for optimal training",
-      "More gameplay data leads to better AI performance",
-      "This represents ideal machine learning conditions",
+      "Record 45 seconds of gameplay to give AI lots of examples",
+      "More examples = smarter AI that plays better",
+      "This shows how AI learns best with enough training data",
     ],
   },
   underfitting: {
     title: "Level 2: Underfitting",
-    description: "Limited data leads to poor performance",
+    description: "What happens when AI doesn't get enough practice",
     icon: AlertTriangle,
     color: "text-orange-600",
     bgColor: "bg-orange-50 dark:bg-orange-950/20",
@@ -42,14 +42,14 @@ const levelData = {
     maxDataPoints: null,
     samePipeLength: false,
     instructions: [
-      "Record exactly 5 seconds of gameplay for training",
-      "Insufficient gameplay data leads to poor AI performance",
-      "This demonstrates underfitting in machine learning",
+      "Record only 5 seconds - very few examples for AI",
+      "Watch how AI struggles with so little training data",
+      "Like trying to learn driving from just one lesson!",
     ],
   },
   overfitting: {
     title: "Level 3: Overfitting",
-    description: "Too specialized - lacks generalization",
+    description: "AI memorizes patterns but fails on new situations",
     icon: Zap,
     color: "text-purple-600",
     bgColor: "bg-purple-50 dark:bg-purple-950/20",
@@ -58,9 +58,9 @@ const levelData = {
     maxDataPoints: null,
     samePipeLength: true,
     instructions: [
-      "All pipes have identical gap positions for user",
-      "AI still gets random pipes for testing generalization",
-      "Record at least 20 seconds of gameplay",
+      "You get identical pipe patterns during recording",
+      "But AI is tested on random patterns it's never seen",
+      "Shows how memorizing ≠ true understanding",
     ],
   },
 }
@@ -82,6 +82,8 @@ export default function FlappyMLGame() {
   const [visitedLevels, setVisitedLevels] = useState<Set<Level>>(new Set(["finetuning"]))
   const [guidanceCompletedLevels, setGuidanceCompletedLevels] = useState<Set<Level>>(new Set())
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [showChatHint, setShowChatHint] = useState(true)
+  const [isClient, setIsClient] = useState(false)
 
   // Track animation triggers for current session to prevent multiple triggers
   const animationTriggeredRef = useRef<Record<Level, boolean>>({
@@ -140,17 +142,26 @@ export default function FlappyMLGame() {
   })
 
   useEffect(() => {
+    setIsClient(true)
+
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("flappyml-level-progress")
       const guidanceDismissed = localStorage.getItem("flappyml-guidance-dismissed")
       const savedVisitedLevels = localStorage.getItem("flappyml-visited-levels")
       const savedGuidanceCompleted = localStorage.getItem("flappyml-guidance-completed")
+      const chatHintDismissed = localStorage.getItem("flappyml-chat-hint-dismissed")
 
       console.log("[Guidance] localStorage check:", {
         guidanceDismissed,
         savedGuidanceCompleted,
-        currentLevel
+        currentLevel,
+        chatHintDismissed
       })
+
+      // Set chat hint visibility immediately on mount
+      if (chatHintDismissed) {
+        setShowChatHint(false)
+      }
 
       // Remove global guidance dismissal - guidance is now per-level
       // if (guidanceDismissed) {
@@ -440,8 +451,19 @@ export default function FlappyMLGame() {
     setGuidanceCompletedLevels(prev => new Set([...prev, currentLevel]))
   }
 
+  const handleDismissChatHint = () => {
+    setShowChatHint(false)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("flappyml-chat-hint-dismissed", "true")
+    }
+  }
+
   const handleChatOpen = () => {
     setIsChatOpen(true)
+    // Dismiss chat hint when user discovers and opens chat
+    if (showChatHint) {
+      handleDismissChatHint()
+    }
     if (gameEngine) {
       gameEngine.pause()
     }
@@ -487,13 +509,13 @@ export default function FlappyMLGame() {
       case 1:
         return "Press Start Recording when you're ready to start recording your gameplay"
       case 2:
-        return "Keep playing to collect enough training data"
+        return "Keep playing for 45 secs to collect enough training data"
       case 3:
         return "Now train the AI model with your recorded gameplay"
       case 4:
-        return "Start the AI to see how well it learned from you!"
+        return "AI learns from you gameplay and will perform better! Start the AI after training."
       case 5:
-        return "Great! Try the next level to learn more AI concepts"
+        return "Now you can see how the AI calculates the path and determines the next move automously!"
       default:
         return ""
     }
@@ -717,7 +739,7 @@ export default function FlappyMLGame() {
                     title={!unlocked ? `Need ${coinsNeeded} coins to unlock` : ""}
                   >
                     <Icon className="h-3 w-3 sm:h-4 sm:w-4 lg:h-5 lg:w-5" />
-                    <span className="hidden sm:inline">{config.title.split(": ")[1]}</span>
+                    <span className="hidden sm:inline">{config.title}</span>
                     <span className="sm:hidden">
                       {level === "finetuning" ? "L1" : level === "underfitting" ? "L2" : "L3"}
                     </span>
@@ -785,33 +807,33 @@ export default function FlappyMLGame() {
                       Learning Process
                     </h4>
                     <p className="text-xs lg:text-sm text-muted-foreground mb-2">
-                      {currentLevel === "finetuning" && "How AI learns from your gameplay"}
-                      {currentLevel === "underfitting" && "Why short recordings create poor AI"}
-                      {currentLevel === "overfitting" && "How repetitive patterns limit AI flexibility"}
+                      {currentLevel === "finetuning" && "How AI learns when given plenty of examples"}
+                      {currentLevel === "underfitting" && "What happens when AI gets too few examples"}
+                      {currentLevel === "overfitting" && "When AI memorizes instead of truly learning"}
                     </p>
                     <ul className="text-xs text-muted-foreground space-y-1">
                       {currentLevel === "finetuning" && (
                         <>
-                          <li>• AI watches your 45-second recording carefully</li>
-                          <li>• Learns optimal timing for jumps and movements</li>
-                          <li>• Has enough examples to understand different situations</li>
-                          <li>• Creates a smart strategy for playing the game</li>
+                          <li>• AI studies your 45+ seconds of gameplay examples</li>
+                          <li>• Learns when to jump in many different situations</li>
+                          <li>• Gets enough practice to build real understanding</li>
+                          <li>• Becomes skilled at handling new challenges</li>
                         </>
                       )}
                       {currentLevel === "underfitting" && (
                         <>
-                          <li>• Only 5 seconds isn't enough time to learn properly</li>
-                          <li>• AI doesn't see enough examples of different situations</li>
-                          <li>• Like learning to drive from just one parking attempt</li>
-                          <li>• Results in poor performance and random behavior</li>
+                          <li>• Only 5 seconds gives AI very few examples to study</li>
+                          <li>• Not enough practice to learn proper timing</li>
+                          <li>• Like learning basketball from watching one shot!</li>
+                          <li>• AI makes mostly random, unskilled moves</li>
                         </>
                       )}
                       {currentLevel === "overfitting" && (
                         <>
-                          <li>• All pipes have identical gaps during your recording</li>
-                          <li>• AI becomes too specialized for this specific pattern</li>
-                          <li>• Struggles when tested with different pipe arrangements</li>
-                          <li>• Like memorizing answers instead of understanding concepts</li>
+                          <li>• AI sees only identical pipe patterns during training</li>
+                          <li>• Memorizes exact timing for these specific patterns</li>
+                          <li>• Fails when pipes are in different positions</li>
+                          <li>• Like memorizing one math problem instead of learning math!</li>
                         </>
                       )}
                     </ul>
@@ -826,6 +848,16 @@ export default function FlappyMLGame() {
                       <span className="h-3 w-3 lg:h-4 lg:w-4 text-purple-600 inline-flex items-center justify-center font-mono font-bold">&lt;/&gt;</span>
                       Details for Nerds
                     </h4>
+                    <div className="text-xs lg:text-sm text-muted-foreground mb-2">
+                      <strong className="text-purple-700 dark:text-purple-300 capitalize">
+                        {currentLevel === "finetuning" ? "Fine-tuning" : currentLevel === "underfitting" ? "Underfitting" : "Overfitting"}:
+                      </strong>
+                      <span className="ml-1">
+                        {currentLevel === "finetuning" && "Training with optimal data amount and additional expert examples"}
+                        {currentLevel === "underfitting" && "Training with insufficient data, leading to poor model performance"}
+                        {currentLevel === "overfitting" && "Training on repetitive patterns, causing poor generalization"}
+                      </span>
+                    </div>
                     <p className="text-xs lg:text-sm text-muted-foreground mb-2">
                       The AI learns from these game features:
                     </p>
@@ -897,6 +929,34 @@ export default function FlappyMLGame() {
         isOpen={isChatOpen}
         onClick={() => isChatOpen ? handleChatClose() : handleChatOpen()}
       />
+
+      {/* Chat Discovery Hint */}
+      {isClient && showChatHint && showGuidance && (currentStep === 1 || currentStep === 2) && !isChatOpen && (
+        <div className="fixed bottom-16 right-6 z-50 max-w-64 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg relative">
+            <button
+              onClick={handleDismissChatHint}
+              className="absolute -top-1 -right-1 bg-blue-700 hover:bg-blue-800 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold transition-colors"
+            >
+              ×
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                💬
+              </div>
+              <div className="text-sm font-medium">
+                Need help? Ask me anything!
+              </div>
+            </div>
+            <div className="text-xs opacity-90 mt-1">
+              I can explain AI concepts, help with the game, and answer your questions.
+            </div>
+            {/* Arrow pointing to chat button */}
+            <div className="absolute -bottom-2 right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-blue-600"></div>
+          </div>
+        </div>
+      )}
+
       <ChatModal
         isOpen={isChatOpen}
         onClose={handleChatClose}
